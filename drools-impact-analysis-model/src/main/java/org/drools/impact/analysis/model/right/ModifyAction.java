@@ -16,13 +16,25 @@
 
 package org.drools.impact.analysis.model.right;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ModifyAction extends ConsequenceAction {
 
-    private List<ModifiedProperty> modifiedProperties;
+    private final List<ModifiedProperty> modifiedProperties = new ArrayList<>();
 
     public ModifyAction( Class<?> actionClass ) {
         super( Type.MODIFY, actionClass );
+    }
+
+    public void addModifiedProperty(ModifiedProperty modifiedProperty) {
+        modifiedProperties.add( modifiedProperty );
+    }
+
+    @Override
+    public String toString() {
+        return "ModifyAction{" +
+                "modifiedProperties=" + modifiedProperties +
+                '}';
     }
 }

@@ -25,12 +25,31 @@ public class Rule {
     private final String name;
     private final String resource;
 
-    private LeftHandSide lhs;
-    private RightHandSide rhs;
+    private final LeftHandSide lhs = new LeftHandSide();
+    private final RightHandSide rhs = new RightHandSide();
 
     public Rule( String pkg, String name, String resource ) {
         this.pkg = pkg;
         this.name = name;
         this.resource = resource;
+    }
+
+    public LeftHandSide getLhs() {
+        return lhs;
+    }
+
+    public RightHandSide getRhs() {
+        return rhs;
+    }
+
+    @Override
+    public String toString() {
+        return "Rule{" +
+                "pkg='" + pkg + '\'' +
+                ", name='" + name + '\'' +
+                ", resource='" + resource + '\'' +
+                ",\n lhs=" + lhs +
+                ",\n rhs=" + rhs +
+                '}';
     }
 }

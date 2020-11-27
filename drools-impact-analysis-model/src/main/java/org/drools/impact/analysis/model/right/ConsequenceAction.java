@@ -18,7 +18,7 @@ package org.drools.impact.analysis.model.right;
 
 public class ConsequenceAction {
 
-    enum Type {
+    public enum Type {
         INSERT,
         DELETE,
         MODIFY;
@@ -30,5 +30,21 @@ public class ConsequenceAction {
     public ConsequenceAction( Type type, Class<?> actionClass ) {
         this.type = type;
         this.actionClass = actionClass;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public Class<?> getActionClass() {
+        return actionClass;
+    }
+
+    @Override
+    public String toString() {
+        return "ConsequenceAction{" +
+                "type=" + type +
+                ", actionClass=" + actionClass.getCanonicalName() +
+                '}';
     }
 }

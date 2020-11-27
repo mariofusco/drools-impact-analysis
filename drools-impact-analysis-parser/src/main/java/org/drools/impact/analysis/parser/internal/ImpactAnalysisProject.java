@@ -14,26 +14,14 @@
  * limitations under the License.
  */
 
-package org.drools.impact.analysis.model.right;
+package org.drools.impact.analysis.parser.internal;
 
-public class ModifiedProperty {
-    private final String property;
-    private final Object value;
+import java.util.function.BiFunction;
 
-    public ModifiedProperty( String property ) {
-        this(property, null);
-    }
+import org.drools.compiler.kie.builder.impl.InternalKieModule;
+import org.drools.compiler.kie.builder.impl.KieModuleKieProject;
+import org.kie.api.builder.KieBuilder;
 
-    public ModifiedProperty( String property, Object value ) {
-        this.property = property;
-        this.value = value;
-    }
-
-    @Override
-    public String toString() {
-        return "ModifiedProperty{" +
-                "property='" + property + '\'' +
-                ", value=" + value +
-                '}';
-    }
+public class ImpactAnalysisProject implements KieBuilder.ProjectType {
+    public static final BiFunction<InternalKieModule, ClassLoader, KieModuleKieProject> SUPPLIER = ImpactAnalysisKieProject.create();
 }

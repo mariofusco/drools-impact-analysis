@@ -23,7 +23,7 @@ public class Constraint {
     private String property;
     private Object value;
 
-    enum Type {
+    public enum Type {
         EQUAL,
         NOT_EQUAL,
         GREATER_THAN,
@@ -32,5 +32,38 @@ public class Constraint {
         LESS_OR_EQUAL,
         RANGE,
         UNKNOWN;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public void setType( Type type ) {
+        this.type = type;
+    }
+
+    public String getProperty() {
+        return property;
+    }
+
+    public void setProperty( String property ) {
+        this.property = property;
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue( Object value ) {
+        this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return "Constraint{" +
+                "type=" + type +
+                ", property='" + property + '\'' +
+                ", value=" + value +
+                '}';
     }
 }

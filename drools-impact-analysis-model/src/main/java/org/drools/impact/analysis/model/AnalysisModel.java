@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-package org.drools.impact.analysis.model.right;
+package org.drools.impact.analysis.model;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.stream.Collectors.joining;
 
-public class RightHandSide {
+public class AnalysisModel {
 
-    private final List<ConsequenceAction> actions = new ArrayList<>();
+    private final List<Package> packages = new ArrayList<>();
 
-    public void addAction(ConsequenceAction action) {
-        actions.add(action);
+    public List<Package> getPackages() {
+        return packages;
     }
 
-    public List<ConsequenceAction> getActions() {
-        return actions;
+    public void addPackage(Package pkg) {
+        packages.add(pkg);
     }
 
     @Override
     public String toString() {
-        return "RightHandSide{" +
-                "actions=" + actions.stream().map( Object::toString ).collect( joining("\n", ",\n", "") ) +
+        return "AnalysisModel{" +
+                "packages=" + packages.stream().map( Object::toString ).collect( joining("\n", ",\n", "") ) +
                 '}';
     }
 }
