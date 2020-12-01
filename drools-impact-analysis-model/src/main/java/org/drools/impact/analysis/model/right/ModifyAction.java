@@ -27,6 +27,10 @@ public class ModifyAction extends ConsequenceAction {
         super( Type.MODIFY, actionClass );
     }
 
+    public List<ModifiedProperty> getModifiedProperties() {
+        return modifiedProperties;
+    }
+
     public void addModifiedProperty(ModifiedProperty modifiedProperty) {
         modifiedProperties.add( modifiedProperty );
     }
