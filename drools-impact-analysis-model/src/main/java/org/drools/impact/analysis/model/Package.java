@@ -30,6 +30,14 @@ public class Package {
         this.name = name;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public List<Rule> getRules() {
+        return rules;
+    }
+
     @Override
     public String toString() {
         return "Package{" +

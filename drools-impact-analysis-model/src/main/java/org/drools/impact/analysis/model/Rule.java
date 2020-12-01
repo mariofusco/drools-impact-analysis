@@ -34,6 +34,11 @@ public class Rule {
         this.resource = resource;
     }
 
+    public String getName() {
+        return name;
+    }
+
+
     public LeftHandSide getLhs() {
         return lhs;
     }

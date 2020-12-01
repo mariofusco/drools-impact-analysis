@@ -29,6 +29,14 @@ public class ModifiedProperty {
         this.value = value;
     }
 
+    public String getProperty() {
+        return property;
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
     @Override
     public String toString() {
         return "ModifiedProperty{" +
