@@ -23,6 +23,7 @@ import org.drools.impact.analysis.graph.Link;
 import org.drools.impact.analysis.graph.ModelToGraphConverter;
 import org.drools.impact.analysis.graph.Node;
 import org.drools.impact.analysis.model.AnalysisModel;
+import org.drools.impact.analysis.model.Rule;
 import org.drools.impact.analysis.parser.ModelBuilder;
 import org.drools.impact.analysis.parser.domain.Address;
 import org.drools.impact.analysis.parser.domain.Person;
@@ -32,12 +33,11 @@ public class BasicGraphTest {
 
     @Test
     public void testBasicGraph() {
-        String pkgName = "org.example";
-        Node node1 = new Node(pkgName, "rule1");
-        Node node2 = new Node(pkgName, "rule2");
-        Node node3 = new Node(pkgName, "rule3");
-        Node node4 = new Node(pkgName, "rule4");
-        Node node5 = new Node(pkgName, "rule5");
+        Node node1 = new Node(new Rule("org.example", "rule1", "dummy"));
+        Node node2 = new Node(new Rule("org.example", "rule2", "dummy"));
+        Node node3 = new Node(new Rule("org.example", "rule3", "dummy"));
+        Node node4 = new Node(new Rule("org.example", "rule4", "dummy"));
+        Node node5 = new Node(new Rule("org.example", "rule5", "dummy"));
 
         Node.linkNodes(node1, node2, Link.Type.POSITIVE);
         Node.linkNodes(node1, node3, Link.Type.NEGATIVE);
@@ -120,6 +120,31 @@ public class BasicGraphTest {
         ModelToGraphConverter converter = new ModelToGraphConverter();
         List<Node> nodeList = converter.toNodeList(analysisModel);
         GraphGenerator generator = new GraphGenerator("5rules");
+        generator.generatePng(nodeList);
+    }
+
+    @Test
+    public void testBeta() {
+        String str =
+                "package mypkg;\n" +
+                     "import " + Person.class.getCanonicalName() + ";" +
+                     "rule R1 when\n" +
+                     "  $p : Person(name == \"Mario\")\n" +
+                     "then\n" +
+                     "  modify($p) { setAge( 18 ) };" +
+                     "end\n" +
+                     "rule R2 when\n" +
+                     "  $a : Integer()\n" +
+                     "  $p2 : Person(age > $a)\n" +
+                     "then\n" +
+                     "end\n";
+
+        AnalysisModel analysisModel = new ModelBuilder().build(str);
+        System.out.println(analysisModel);
+
+        ModelToGraphConverter converter = new ModelToGraphConverter();
+        List<Node> nodeList = converter.toNodeList(analysisModel);
+        GraphGenerator generator = new GraphGenerator("beta");
         generator.generatePng(nodeList);
     }
 }

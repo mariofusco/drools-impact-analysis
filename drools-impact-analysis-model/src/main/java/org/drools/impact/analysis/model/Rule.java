@@ -34,6 +34,14 @@ public class Rule {
         this.resource = resource;
     }
 
+    public String getPkg() {
+        return pkg;
+    }
+
+    public String getResource() {
+        return resource;
+    }
+
     public String getName() {
         return name;
     }

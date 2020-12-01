@@ -45,10 +45,9 @@ public class ModelToGraphConverter {
 
         List<Package> packages = model.getPackages();
         for (Package pkg : packages) {
-            String pkgName = pkg.getName();
             List<Rule> rules = pkg.getRules();
             for (Rule rule : rules) {
-                Node node = new Node(pkgName, rule.getName());
+                Node node = new Node(rule);
                 nodeMap.put(node.getFqdn(), node);
 
                 LeftHandSide lhs = rule.getLhs();
@@ -139,21 +138,22 @@ public class ModelToGraphConverter {
                                                           .flatMap(pattern -> pattern.getConstraints().stream())
                                                           .filter(constraint -> constraint.getProperty().equals(property))
                                                           .collect(Collectors.toList());
+                Link.Type combinedLinkType = Link.Type.UNKNOWN;
                 if (constraints.size() == 0) {
-                    // This rule is reactive to the property but cannot find its constraint. Exception or UNKNOWN?
-                    throw new RuntimeException("This rule [" + reactedRule.getName() + "] is reactive to the property [" + property + "] " +
-                                               "but cannot find its constraint : \n" + reactedRule);
-                }
-                Link.Type combinedLinkType = Link.Type.UNKNOWN; // If constraints contain at least one POSITIVE, we consider it's POSITIVE.
-                for (Constraint constraint : constraints) {
-                    Link.Type linkType = linkType(constraint, modifiedProperty);
-                    if (linkType == Link.Type.POSITIVE) {
-                        combinedLinkType = Link.Type.POSITIVE;
-                        break;
-                    } else if (linkType == Link.Type.NEGATIVE) {
-                        combinedLinkType = Link.Type.NEGATIVE; // overwrite if it's UNKNOWN
-                    } else {
-                        combinedLinkType = linkType; // UNKNOWN
+                    // This rule is reactive to the property but cannot find its constraint (e.g. [age > $a] non-literal constraint) It means UNKNOWN impact
+                    combinedLinkType = Link.Type.UNKNOWN;
+                } else {
+                     // If constraints contain at least one POSITIVE, we consider it's POSITIVE.
+                    for (Constraint constraint : constraints) {
+                        Link.Type linkType = linkType(constraint, modifiedProperty);
+                        if (linkType == Link.Type.POSITIVE) {
+                            combinedLinkType = Link.Type.POSITIVE;
+                            break;
+                        } else if (linkType == Link.Type.NEGATIVE) {
+                            combinedLinkType = Link.Type.NEGATIVE; // TODO: consider whether NEGATIVE or UNKNOWN should be stronger (meaningful for users)
+                        } else {
+                            combinedLinkType = linkType; // UNKNOWN
+                        }
                     }
                 }
                 Node target = nodeMap.get(fqdn(pkgName, reactedRule.getName()));
