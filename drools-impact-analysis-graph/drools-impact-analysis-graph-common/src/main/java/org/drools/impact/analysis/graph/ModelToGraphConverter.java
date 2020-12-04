@@ -34,12 +34,16 @@ import org.drools.impact.analysis.model.right.ConsequenceAction;
 import org.drools.impact.analysis.model.right.ModifiedProperty;
 import org.drools.impact.analysis.model.right.ModifyAction;
 import org.drools.impact.analysis.model.right.RightHandSide;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ModelToGraphConverter {
 
+    private static Logger logger = LoggerFactory.getLogger(ModelToGraphConverter.class);
+
     private static final String NO_REACT = "this";
 
-    public List<Node> toNodeList(AnalysisModel model) {
+    public Graph toGraph(AnalysisModel model) {
         Map<String, Node> nodeMap = new HashMap<>();
         Map<Class<?>, Map<String, Set<Rule>>> reactFactMap = new HashMap<>();
 
@@ -57,7 +61,7 @@ public class ModelToGraphConverter {
                     Map<String, Set<Rule>> reactFieldMap = reactFactMap.computeIfAbsent(patternClass, k -> new HashMap<>());
                     Collection<String> reactOnFields = pattern.getReactOnFields();
                     if (reactOnFields.size() == 0) {
-                        // TODO: confirm mask logic (No constraint vs Failed to analyze property reactivity)
+                        // TODO: Currently reactOnFields.size() == 0 assumes that the pattern doesn't have a constraint (e.g. Person()) so no react
                         Set<Rule> ruleSet = reactFieldMap.computeIfAbsent(NO_REACT, k -> new HashSet<>());
                         ruleSet.add(rule);
                     } else {
@@ -93,7 +97,7 @@ public class ModelToGraphConverter {
             }
         }
 
-        return nodeMap.values().stream().collect(Collectors.toList());
+        return new Graph(nodeMap);
     }
 
     private void processInsert(Map<String, Node> nodeMap, Map<Class<?>, Map<String, Set<Rule>>> reactFactMap, String pkgName, String ruleName, ConsequenceAction action) {
@@ -128,10 +132,20 @@ public class ModelToGraphConverter {
 
         Class<?> modifiedClass = action.getActionClass();
         Map<String, Set<Rule>> reactFieldMap = reactFactMap.get(modifiedClass);
+        if (reactFieldMap == null) {
+            // Not likely happen but not invalid
+            logger.warn("Not found " + modifiedClass + " in reactFactMap");
+            return;
+        }
         List<ModifiedProperty> modifiedProperties = action.getModifiedProperties();
         for (ModifiedProperty modifiedProperty : modifiedProperties) {
             String property = modifiedProperty.getProperty();
             Set<Rule> rules = reactFieldMap.get(property);
+            if (rules == null) {
+                // Not likely happen but not invalid
+                logger.warn("Not found " + property + " in reactFieldMap");
+                continue;
+            }
             for (Rule reactedRule : rules) {
                 List<Constraint> constraints = reactedRule.getLhs().getPatterns().stream()
                                                           .filter(pattern -> pattern.getPatternClass() == modifiedClass)
@@ -143,7 +157,7 @@ public class ModelToGraphConverter {
                     // This rule is reactive to the property but cannot find its constraint (e.g. [age > $a] non-literal constraint) It means UNKNOWN impact
                     combinedLinkType = Link.Type.UNKNOWN;
                 } else {
-                     // If constraints contain at least one POSITIVE, we consider it's POSITIVE.
+                    // If constraints contain at least one POSITIVE, we consider it's POSITIVE.
                     for (Constraint constraint : constraints) {
                         Link.Type linkType = linkType(constraint, modifiedProperty);
                         if (linkType == Link.Type.POSITIVE) {

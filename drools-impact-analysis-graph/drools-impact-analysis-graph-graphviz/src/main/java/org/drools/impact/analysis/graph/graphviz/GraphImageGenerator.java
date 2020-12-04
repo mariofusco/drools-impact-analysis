@@ -20,13 +20,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import guru.nidi.graphviz.attribute.ForNodeLink;
 import guru.nidi.graphviz.attribute.Rank;
 import guru.nidi.graphviz.attribute.Style;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
-import guru.nidi.graphviz.model.Graph;
+import org.drools.impact.analysis.graph.Graph;
 import org.drools.impact.analysis.graph.Link;
 import org.drools.impact.analysis.graph.Node;
 
@@ -35,7 +36,7 @@ import static guru.nidi.graphviz.model.Factory.graph;
 import static guru.nidi.graphviz.model.Factory.node;
 import static guru.nidi.graphviz.model.Factory.to;
 
-public class GraphGenerator {
+public class GraphImageGenerator {
 
     private static final String DEFAULT_OUTPUT_DIR = "target" + File.separator + "graph-output";
 
@@ -44,11 +45,11 @@ public class GraphGenerator {
     private int height = 0; // when 0, auto-sized
     private String outputDir = DEFAULT_OUTPUT_DIR;
 
-    public GraphGenerator(String graphName) {
+    public GraphImageGenerator(String graphName) {
         this.graphName = graphName;
     }
 
-    public GraphGenerator(String graphName, int width, int height) {
+    public GraphImageGenerator(String graphName, int width, int height) {
         this.graphName = graphName;
         this.width = width;
         this.height = height;
@@ -62,10 +63,11 @@ public class GraphGenerator {
         this.outputDir = outputDir;
     }
 
-    public void generatePng(List<Node> nodeList) {
-        Graph graph = graph(graphName).directed()
+    public void generatePng(Graph g) {
+        guru.nidi.graphviz.model.Graph graph = graph(graphName).directed()
                                       .graphAttr().with(Rank.dir(LEFT_TO_RIGHT));
 
+        List<Node> nodeList = g.getNodeMap().values().stream().collect(Collectors.toList());
         for (Node n : nodeList) {
             guru.nidi.graphviz.model.Node node = node(n.getRuleName());
             for (Link l : n.getOutgoingLinks()) {
