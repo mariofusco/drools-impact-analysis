@@ -17,10 +17,7 @@
 package org.drools.impact.analysis.graph;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,37 +41,41 @@ public class ModelToGraphConverter {
     private static final String NO_REACT = "this";
 
     public Graph toGraph(AnalysisModel model) {
-        Map<String, Node> nodeMap = new HashMap<>();
-        Map<Class<?>, Map<String, Set<Rule>>> reactFactMap = new HashMap<>();
+        GraphAnalysis graphAnalysis = generateGraphAnalysis( model );
+        parseGraphAnalysis( model, graphAnalysis );
+        return new Graph(graphAnalysis.getNodeMap());
+    }
 
-        List<Package> packages = model.getPackages();
-        for (Package pkg : packages) {
+    private GraphAnalysis generateGraphAnalysis( AnalysisModel model ) {
+        GraphAnalysis graphAnalysis = new GraphAnalysis();
+        for (Package pkg : model.getPackages()) {
             List<Rule> rules = pkg.getRules();
             for (Rule rule : rules) {
-                Node node = new Node(rule);
-                nodeMap.put(node.getFqdn(), node);
+                graphAnalysis.addNode( new Node(rule) );
 
                 LeftHandSide lhs = rule.getLhs();
                 List<Pattern> patterns = lhs.getPatterns();
                 for (Pattern pattern : patterns) {
                     Class<?> patternClass = pattern.getPatternClass();
-                    Map<String, Set<Rule>> reactFieldMap = reactFactMap.computeIfAbsent(patternClass, k -> new HashMap<>());
                     Collection<String> reactOnFields = pattern.getReactOnFields();
-                    if (reactOnFields.size() == 0) {
+                    if (pattern.isClassReactive()) {
+                        graphAnalysis.addClassReactiveRule( patternClass, rule );
+                    } else if (reactOnFields.size() == 0) {
                         // TODO: Currently reactOnFields.size() == 0 assumes that the pattern doesn't have a constraint (e.g. Person()) so no react
-                        Set<Rule> ruleSet = reactFieldMap.computeIfAbsent(NO_REACT, k -> new HashSet<>());
-                        ruleSet.add(rule);
+                        graphAnalysis.addPropertyReactiveRule(patternClass, NO_REACT, rule);
                     } else {
                         for (String field : reactOnFields) {
-                            Set<Rule> ruleSet = reactFieldMap.computeIfAbsent(field, k -> new HashSet<>());
-                            ruleSet.add(rule);
+                            graphAnalysis.addPropertyReactiveRule(patternClass, field, rule);
                         }
                     }
                 }
             }
         }
+        return graphAnalysis;
+    }
 
-        for (Package pkg : packages) {
+    private void parseGraphAnalysis( AnalysisModel model, GraphAnalysis graphAnalysis ) {
+        for (Package pkg : model.getPackages()) {
             String pkgName = pkg.getName();
             List<Rule> rules = pkg.getRules();
             for (Rule rule : rules) {
@@ -84,55 +85,50 @@ public class ModelToGraphConverter {
                 for (ConsequenceAction action : actions) {
                     switch (action.getType()) {
                         case INSERT:
-                            processInsert(nodeMap, reactFactMap, pkgName, ruleName, action);
+                            processInsert( graphAnalysis, pkgName, ruleName, action);
                             break;
                         case DELETE:
-                            processDelete(nodeMap, reactFactMap, pkgName, ruleName, action);
+                            processDelete( graphAnalysis, pkgName, ruleName, action);
                             break;
                         case MODIFY:
-                            processModify(nodeMap, reactFactMap, pkgName, ruleName, (ModifyAction) action);
+                            processModify( graphAnalysis, pkgName, ruleName, (ModifyAction) action);
                             break;
                     }
                 }
             }
         }
-
-        return new Graph(nodeMap);
     }
 
-    private void processInsert(Map<String, Node> nodeMap, Map<Class<?>, Map<String, Set<Rule>>> reactFactMap, String pkgName, String ruleName, ConsequenceAction action) {
+    private void processInsert(GraphAnalysis graphAnalysis, String pkgName, String ruleName, ConsequenceAction action) {
         // TODO: consider not()
         Class<?> insertedClass = action.getActionClass();
-        Map<String, Set<Rule>> reactFieldMap = reactFactMap.get(insertedClass);
         // all rules which react to the fact
-        Set<Rule> reactedRules = reactFieldMap.values().stream().flatMap(ruleSet -> ruleSet.stream()).collect(Collectors.toSet());
-        Node source = nodeMap.get(fqdn(pkgName, ruleName));
+        Set<Rule> reactedRules = graphAnalysis.getRulesReactiveTo(insertedClass);
+        Node source = graphAnalysis.getNode(fqdn(pkgName, ruleName));
         for (Rule reactedRule : reactedRules) {
-            Node target = nodeMap.get(fqdn(pkgName, reactedRule.getName()));
+            Node target = graphAnalysis.getNode(fqdn(pkgName, reactedRule.getName()));
             Node.linkNodes(source, target, Link.Type.POSITIVE);
         }
     }
 
-    private void processDelete(Map<String, Node> nodeMap, Map<Class<?>, Map<String, Set<Rule>>> reactFactMap, String pkgName, String ruleName, ConsequenceAction action) {
+    private void processDelete(GraphAnalysis graphAnalysis, String pkgName, String ruleName, ConsequenceAction action) {
         // TODO: consider exists()
         Class<?> deletedClass = action.getActionClass();
-        Map<String, Set<Rule>> reactFieldMap = reactFactMap.get(deletedClass);
         // all rules which react to the fact
-        Set<Rule> reactedRules = reactFieldMap.values().stream().flatMap(ruleSet -> ruleSet.stream()).collect(Collectors.toSet());
-        Node source = nodeMap.get(fqdn(pkgName, ruleName));
+        Set<Rule> reactedRules = graphAnalysis.getRulesReactiveTo(deletedClass);
+        Node source = graphAnalysis.getNode(fqdn(pkgName, ruleName));
         for (Rule reactedRule : reactedRules) {
-            Node target = nodeMap.get(fqdn(pkgName, reactedRule.getName()));
+            Node target = graphAnalysis.getNode(fqdn(pkgName, reactedRule.getName()));
             Node.linkNodes(source, target, Link.Type.NEGATIVE);
         }
     }
 
-    private void processModify(Map<String, Node> nodeMap, Map<Class<?>, Map<String, Set<Rule>>> reactFactMap, String pkgName, String ruleName, ModifyAction action) {
+    private void processModify(GraphAnalysis graphAnalysis, String pkgName, String ruleName, ModifyAction action) {
         // TODO: consider exists()/not()
-        Node source = nodeMap.get(fqdn(pkgName, ruleName));
+        Node source = graphAnalysis.getNode(fqdn(pkgName, ruleName));
 
         Class<?> modifiedClass = action.getActionClass();
-        Map<String, Set<Rule>> reactFieldMap = reactFactMap.get(modifiedClass);
-        if (reactFieldMap == null) {
+        if (!graphAnalysis.isRegisteredClass( modifiedClass )) {
             // Not likely happen but not invalid
             logger.warn("Not found " + modifiedClass + " in reactFactMap");
             return;
@@ -140,7 +136,7 @@ public class ModelToGraphConverter {
         List<ModifiedProperty> modifiedProperties = action.getModifiedProperties();
         for (ModifiedProperty modifiedProperty : modifiedProperties) {
             String property = modifiedProperty.getProperty();
-            Set<Rule> rules = reactFieldMap.get(property);
+            Set<Rule> rules = graphAnalysis.getRulesReactiveTo( modifiedClass, property );
             if (rules == null) {
                 // Not likely happen but not invalid
                 logger.warn("Not found " + property + " in reactFieldMap");
@@ -170,7 +166,7 @@ public class ModelToGraphConverter {
                         }
                     }
                 }
-                Node target = nodeMap.get(fqdn(pkgName, reactedRule.getName()));
+                Node target = graphAnalysis.getNode(fqdn(pkgName, reactedRule.getName()));
                 Node.linkNodes(source, target, combinedLinkType);
             }
         }

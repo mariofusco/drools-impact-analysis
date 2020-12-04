@@ -26,6 +26,7 @@ public class Pattern {
     private final Class<?> patternClass;
     private final Collection<Constraint> constraints = new ArrayList<>();
     private final Collection<String> reactOnFields = new HashSet<>();
+    private boolean classReactive = false;
 
     public Pattern( Class<?> patternClass ) {
         this.patternClass = patternClass;
@@ -49,6 +50,14 @@ public class Pattern {
 
     public Collection<String> getReactOnFields() {
         return reactOnFields;
+    }
+
+    public boolean isClassReactive() {
+        return classReactive;
+    }
+
+    public void setClassReactive( boolean classReactive ) {
+        this.classReactive = classReactive;
     }
 
     @Override
