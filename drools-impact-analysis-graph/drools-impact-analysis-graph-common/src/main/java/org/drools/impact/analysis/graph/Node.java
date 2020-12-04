@@ -19,18 +19,21 @@ package org.drools.impact.analysis.graph;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.drools.impact.analysis.model.Rule;
+
 public class Node {
 
     private String packageName;
-
     private String ruleName;
+    private Rule rule;
 
     private Set<Link> incomingLinks;
     private Set<Link> outgoingLinks;
 
-    public Node(String packageName, String ruleName) {
-        this.packageName = packageName;
-        this.ruleName = ruleName;
+    public Node(Rule rule) {
+        this.packageName = rule.getPkg();
+        this.ruleName = rule.getName();
+        this.rule = rule;
         incomingLinks = new HashSet<>();
         outgoingLinks = new HashSet<>();
     }
@@ -45,6 +48,10 @@ public class Node {
 
     public String getRuleName() {
         return ruleName;
+    }
+
+    public Rule getRule() {
+        return rule;
     }
 
     public Set<Link> getIncomingLinks() {
